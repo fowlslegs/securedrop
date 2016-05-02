@@ -11,10 +11,10 @@ Vagrant.configure("2") do |config|
 
   config.vm.define 'development', primary: true do |development|
     development.vm.hostname = "development"
-    development.vm.box = "trusty64"
+    development.vm.box = "tknerr/baseimage-ubuntu-14.04"
     development.vm.network "forwarded_port", guest: 8080, host: 8080
     development.vm.network "forwarded_port", guest: 8081, host: 8081
-    development.vm.box_url = "https://cloud-images.ubuntu.com/vagrant/trusty/current/trusty-server-cloudimg-amd64-vagrant-disk1.box"
+    # development.vm.box_url = "https://cloud-images.ubuntu.com/vagrant/trusty/current/trusty-server-cloudimg-amd64-vagrant-disk1.box"
     development.vm.provision "ansible" do |ansible|
       # Hack to trick Vagrant into parsing the command-line args for
       # Ansible options, see https://gist.github.com/phantomwhale/9657134
@@ -29,14 +29,14 @@ Vagrant.configure("2") do |config|
         'securedrop:children' => %w(development),
       }
     end
-    development.vm.provider "virtualbox" do |v|
-      v.name = "development"
+    development.vm.provider "docker" do |d|
+      d.name = "development"
       # Running the functional tests with Selenium/Firefox has started causing out-of-memory errors.
       #
       # This started around October 14th and was first observed on the task-queue branch. There are two likely causes:
       # 1. The new job queue backend (redis) is taking up a significant amount of memory. According to top, it is not (a couple MB on average).
       # 2. Firefox 33 was released on October 13th: https://www.mozilla.org/en-US/firefox/33.0/releasenotes/ It may require more memory than the previous version did.
-      v.memory = 1024
+      # d.memory = 1024
     end
   end
 
