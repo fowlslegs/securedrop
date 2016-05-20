@@ -1,6 +1,13 @@
 ---
+- name: create the pypi.python.org local cert directory
+  file: path=/usr/local/share/ca-certificates/pypi.python.org state=directory owner=root mode=2755
+
+- name: install the pypi certificate
+copy: src=./pypi.crt dest=/usr/local/share/ca-certificates/pypi.python.org/pypi.crt owner=root mode=0644 force=yes
+
 - name: install pip dependencies for running the unit and functional tests
-  pip: requirements="{{ test_pip_requirements }}"
+  pip: requirements="{{ test_pip_requirements }}" extra_args="--cert /usr/local/share/ca-certificates/pypi.python.org/pypi.crt"
+
 
 - name: install testing deb pkg dependencies
   apt: name="{{ item }}" state=latest

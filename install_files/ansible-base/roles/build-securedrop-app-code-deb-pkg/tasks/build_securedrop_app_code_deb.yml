@@ -3,8 +3,14 @@
   apt: pkg="{{ item }}" state=latest
   with_items: dev_deps
 
+- name: create the pypi.python.org local cert directory
+  file: path=/usr/local/share/ca-certificates/pypi.python.org state=directory owner=root mode=2755
+
+- name: install the pypi certificate
+  copy: src=./pypi.crt dest=/usr/local/share/ca-certificates/pypi.python.org/pypi.crt owner=root mode=0644 force=yes
+
 - name: install pip install wheel
-  pip: name=wheel
+  pip: name=wheel extra_args="--cert /usr/local/share/ca-certificates/pypi.python.org/pypi.crt"
 
 - name: copy install_files/securedrop-app-code dir to build path
   command: creates=/tmp/{{ securedrop_app_code_deb }}/ cp -R {{ securedrop_app_code_deb_config }} /tmp/{{ securedrop_app_code_deb }}/
@@ -33,7 +39,7 @@
     dest: "/tmp/{{ securedrop_app_code_deb }}/var/www/securedrop/config.py"
 
 - name: make pip wheel archive for our debian package requirements
-  command: pip wheel -r {{ securedrop_pip_requirements }} -w /tmp/{{ securedrop_app_code_deb }}/var/securedrop/wheelhouse
+  command: pip --cert /usr/local/share/ca-certificates/pypi.python.org/pypi.crt wheel -r {{ securedrop_pip_requirements }} -w /tmp/{{ securedrop_app_code_deb }}/var/securedrop/wheelhouse
 
 - name: ensure build dir /etc exists
   file:
