@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
+from io import BytesIO
 import os
 import subprocess
 from base64 import b32encode
 
 from Crypto.Random import random
 import gnupg
+from gnupg._util import _is_stream
 import scrypt
 
 import config
@@ -154,6 +156,9 @@ def encrypt(plaintext, fingerprints, output=None):
         fingerprints = [fingerprints, ]
     fingerprints = [fpr.replace(' ', '') for fpr in fingerprints]
 
+    if not _is_stream(plaintext):
+        plaintext = _make_binary_stream(plaintext)
+
     out = gpg.encrypt(plaintext,
                       *fingerprints,
                       output=output,
@@ -165,7 +170,7 @@ def encrypt(plaintext, fingerprints, output=None):
         raise CryptoException(out.stderr)
 
 
-def decrypt(secret, plain_text):
+def decrypt(secret, ciphertext):
     """
     >>> key = genkeypair('randomid', 'randomid')
     >>> decrypt('randomid', 'randomid',
@@ -174,8 +179,27 @@ def decrypt(secret, plain_text):
     'Goodbye, cruel world!'
     """
     hashed_codename = hash_codename(secret, salt=SCRYPT_GPG_PEPPER)
-    return gpg.decrypt(plain_text, passphrase=hashed_codename).data
 
+    return gpg.decrypt(ciphertext, passphrase=hashed_codename).data
+
+# Modified version of function from python-gnupg to make sure we are passing a
+# steam/file-like object to GPG. We choose to do this conversion here to ensure
+# that we control the encoding and conversion type. See
+# https://github.com/freedomofpress/securedrop/issues/1360#issuecomment-239593607
+# for more on why this was implemented here.
+def _make_binary_stream(thing):
+    """Encode **thing**, then make it stream/file-like.
+
+    :param thing: The thing to turn into a encoded stream.
+    :rtype: ``io.BytesIO``
+    :returns: The encoded **thing**, wrapped in an ``io.BytesIO``.
+    """
+    encoding = "utf_8"
+
+    if type(thing) is not str:
+        thing = thing.encode(encoding)
+
+    return BytesIO(thing)
 
 if __name__ == "__main__":
     import doctest
